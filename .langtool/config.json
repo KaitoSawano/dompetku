@@ -1,0 +1,18 @@
+{
+  "androidResDirectory" : "feesafe-android/src/main/res/",
+  "deepL" : {
+    "es" : {
+      "formality" : "prefer_less"
+    },
+    "es-419" : {
+      "formality" : "prefer_less",
+      "target" : "es"
+    },
+    "fr" : {
+      "formality" : "prefer_more"
+    }
+  },
+  "iosXcstringsFiles" : [
+    "feesafe-ios/feesafe-ios/Localizable.xcstrings"
+  ]
+}

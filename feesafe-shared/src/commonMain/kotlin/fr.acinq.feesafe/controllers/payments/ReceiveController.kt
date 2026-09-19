@@ -1,0 +1,61 @@
+/*
+ * Copyright 2022 ACINQ SAS
+ * Copyright 2026 ZenderBin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package fr.acinq.feesafe.controllers.payments
+
+import fr.acinq.bitcoin.utils.Either
+import fr.acinq.lightning.Lightning.randomBytes32
+import fr.acinq.lightning.logging.LoggerFactory
+import fr.acinq.feesafe.FeeSafeBusiness
+import fr.acinq.feesafe.controllers.AppController
+import fr.acinq.feesafe.managers.PeerManager
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
+
+
+class AppReceiveController(
+    loggerFactory: LoggerFactory,
+    private val peerManager: PeerManager,
+) : AppController<Receive.Model, Receive.Intent>(
+    loggerFactory = loggerFactory,
+    firstModel = Receive.Model.Awaiting
+) {
+    constructor(business: FeeSafeBusiness) : this(
+        loggerFactory = business.loggerFactory,
+        peerManager = business.peerManager,
+    )
+
+    private val Receive.Intent.Ask.description: String get() = desc?.takeIf { it.isNotBlank() } ?: ""
+
+    override fun process(intent: Receive.Intent) {
+        when (intent) {
+            is Receive.Intent.Ask -> {
+                launch {
+                    model(Receive.Model.Generating)
+                    val paymentRequest = peerManager.getPeer().createInvoice(
+                        paymentPreimage = randomBytes32(),
+                        amount = intent.amount,
+                        description = Either.Left(intent.description),
+                        expiry = intent.expirySeconds.seconds
+                    )
+                    model(Receive.Model.Generated(paymentRequest.write(), paymentRequest.paymentHash.toHex(), paymentRequest.amount, paymentRequest.description))
+                }
+            }
+        }
+    }
+
+}
